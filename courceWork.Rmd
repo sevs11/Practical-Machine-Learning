@@ -1,0 +1,62 @@
+---
+title: "Practical Machine Learning. Prediction assignment"
+author: "V. Demydov"
+date: "Sunday, May 24, 2015"
+output: html_document
+---
+##Step 1. Loading data
+```{r}
+setwd("D:/stud/courcera/pml")
+trainData <- read.csv('pml-training.csv')
+testData <- read.csv('pml-testing.csv')
+```
+Outcome field is "Classe", so lets study it
+```{r, echo=FALSE}
+summary(trainData$classe)
+```
+So we have classification task. There are 5 different classes. Anyway our test data is not really data for test, so we need divide train data to really train set and test set. Size of data is rather big so we could divide data 70% (train set) to 30% (test set)
+```{r}
+set.seed(5765)
+library(caret)
+testIndex = createDataPartition(trainData$classe, p = 0.30,list=FALSE)
+training = trainData[-testIndex,]
+testing = trainData[testIndex,]
+dim(training);
+dim(testing)
+```
+There are so mny columns. Lets ignore columns with many NAs or empty data
+```{r}
+trainSh <- training[,colSums(is.na(trainData[,]))<10000]
+testSh <- testing[,colSums(is.na(trainData[,]))<10000]
+toCalcSh <- testData[,colSums(is.na(trainData[,]))<10000]
+
+trainSh1<-trainSh[,colSums(trainSh[,]=='')<10000]
+testSh1<-testSh[,colSums(trainSh[,]=='')<10000]
+toCalcSh1<-toCalcSh[,colSums(trainSh[,]=='')<10000]
+
+```
+Maybe timestamp is not very useful, testing examples could be done much later
+```{r}
+trainSh2<-trainSh1[,-c(3:5)]
+testSh2<-testSh1[,-c(3:5)]
+toCalcSh2<-toCalcSh1[,-c(3:5)]
+```
+Ok, lets try to build tree
+```{r}
+mod1 <- train(classe~.-X, method='rpart2', data=trainSh2)
+print(mod1$finalModel)
+```
+lets see prediction tables for train and test datasets:
+```{r}
+table(predict(mod1,trainSh2),trainSh2$classe)
+table(predict(mod1,testSh2),testSh2$classe)
+```
+So accuracy on train and test datasets is
+```{r}
+sum(predict(mod1,trainSh2)==trainSh2$classe)/length(trainSh2$classe)
+sum(predict(mod1,testSh2)==testSh2$classe)/length(testSh2$classe)
+```
+And predicts for 20 test examples:
+```{r}
+predict(mod1,toCalcSh2)
+```
